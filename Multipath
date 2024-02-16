@@ -1,11 +1,28 @@
+#!/usr/bin/env bash
+
+# Inicio das funções
+
+################################################################################
+# Função para mostrar mensagem de erro
+_MSG_ERRO_INFO() { clear ; whiptail --title "Erro" --msgbox "$1" 0 0 ; exit 20 ; }
+
+################################################################################
+
 # Exemplo de configuração
-apt install multipath-tools -y
+which multipath || apt install multipath-tools -y
+ISCSI=$(find /etc -iname iscsid.conf)
+
+sed -i 's/^node.startup.*/node.startup = manual/g'                                                  "$ISCSI" || _MSG_ERRO_INFO "Arquivo $ISCSI não encontrado"
+sed -i 's/^node.session.timeo.replacement_timeout.*/node.session.timeo.replacement_timeout = 120/g' "$ISCSI" || _MSG_ERRO_INFO "Arquivo $ISCSI não encontrado"
 
 
-sed -i 's/^node.startup.*/node.startup = manual/g' /etc/iscsi/iscsid.conf
-sed -i 's/^node.session.timeo.replacement_timeout.*/node.session.timeo.replacement_timeout = 120/g' /etc/iscsi/iscsid.conf
+if ! whiptail --title "Disco ISCSI" --yesno "Disco ISCSI já foi adicionado ao Cluster ou PVE" 10 50 ; then _MSG_ERRO_INFO "Favor adicionar o Disco" ; fi 
 
-UID=$(/lib/udev/scsi_id -g -u -d /dev/sd[bcde])
+MPATH=$(/lib/udev/scsi_id -g -u -d /dev/sd[bcde]) || _MSG_ERRO_INFO "Erro ao executar scsi_is"
+
+[[ $(wc -l "$MPATH") -eq 0 ]] || _MSG_ERRO_INFO "UID não informada"
+
+multipath -a "$MPATH" || _MSG_ERRO_INFO "Erro ao executar multipath"
 
 touch /etc/multipath.conf
 
@@ -24,7 +41,7 @@ defaults {
 
 multipaths {
   multipath {
-        wwid "36589cfc0000008e4a3fe1ef5317b91be"
+        wwid "$MPATH"
         alias mpath0
   }
 }
@@ -34,6 +51,8 @@ blacklist {
 }
 
 blacklist_exceptions {
-        wwid "36589cfc0000008e4a3fe1ef5317b91be"
+        wwid "$MPATH"
 }
 EOF
+
+if whiptail --title "Aplicar Configurações" --yesno "Deseja reiniciar o servidor" 10 50 ; then reboot ; fi
