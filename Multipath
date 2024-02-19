@@ -12,8 +12,8 @@ _MSG_ERRO_INFO() { clear ; whiptail --title "Erro" --msgbox "$1" 0 0 ; exit 20 ;
 which multipath || apt install multipath-tools -y
 ISCSI=$(find /etc -iname iscsid.conf)
 
-sed -i 's/^node.startup.*/node.startup = manual/g'                                                  "$ISCSI" || _MSG_ERRO_INFO "Arquivo $ISCSI não encontrado"
-sed -i 's/^node.session.timeo.replacement_timeout.*/node.session.timeo.replacement_timeout = 120/g' "$ISCSI" || _MSG_ERRO_INFO "Arquivo $ISCSI não encontrado"
+sed -i 's/^node.startup.*/node.startup = automatic/g'                                                  "$ISCSI" || _MSG_ERRO_INFO "Arquivo $ISCSI não encontrado"
+sed -i 's/^node.session.timeo.replacement_timeout.*/node.session.timeo.replacement_timeout = 15/g' "$ISCSI" || _MSG_ERRO_INFO "Arquivo $ISCSI não encontrado"
 
 
 if ! whiptail --title "Disco ISCSI" --yesno "Disco ISCSI já foi adicionado ao Cluster ou PVE" 10 50 ; then _MSG_ERRO_INFO "Favor adicionar o Disco" ; fi 
